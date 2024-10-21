@@ -16,11 +16,14 @@ This project uses the Faster Whisper model to transcribe audio files into Chines
 
 ## Installation
 
-1. Clone this repository:   ```
+1. Clone this repository:
+   ```
    git clone https://github.com/seangau/faster-whisper-srt.git
-   cd faster-whisper-SRT   ```
+   
+   cd faster-whisper-SRT
+   ```
 
-2. Install the required packages:   ```
+3. Install the required packages:   ```
    pip install faster_whisper```
 
 ## Usage
