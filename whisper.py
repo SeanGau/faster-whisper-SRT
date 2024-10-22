@@ -9,16 +9,16 @@ parser.add_argument('filename', type=str, help='Path to the audio file')
 args = parser.parse_args()
 
 # Load Whisper model
-model = WhisperModel("medium")
+model = WhisperModel("large-v3")
 filename = args.filename
 converter = opencc.OpenCC('s2tw')
 
 # Transcribe the audio file
 segments, info = model.transcribe(filename, language="zh")
 
-# Function to format time in SRT format
+# Function to format time in SRT format with more precise milliseconds
 def format_timestamp(seconds):
-    milliseconds = int((seconds % 1) * 1000)
+    milliseconds = int(seconds * 1000) % 1000
     seconds = int(seconds)
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
