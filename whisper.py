@@ -8,22 +8,26 @@ parser = argparse.ArgumentParser(
     description="Transcribe an audio file using Whisper and save as SRT."
 )
 parser.add_argument("filename", type=str, help="Path to the audio file")
+parser.add_argument("--model", type=str, help="Model to use", default="large-v3")
+parser.add_argument("--language", type=str, help="Language of the audio file", default="zh")
+parser.add_argument("--keywords", type=str, help="Initial prompt for the model", default="")
 args = parser.parse_args()
+print(args)
 
 # Load Whisper model
-model = WhisperModel("large-v3")
+model = WhisperModel(args.model)
 filename = args.filename
 converter = opencc.OpenCC("s2tw")
 
 # Transcribe the audio file
-initial_prompt = "This is a Mandarin Chinese conversation about ChatGPT, Claude AI"
+initial_prompt = f"This is a conversation about: 生成式 AI, ChatGPT, Claude AI, {args.keywords}"
 segments, info = model.transcribe(
     filename,
-    language="zh",
+    language=args.language,
     initial_prompt=initial_prompt,
     word_timestamps=True,
     vad_filter=True,
-    vad_parameters={"min_silence_duration_ms": 300},
+    vad_parameters={"min_silence_duration_ms": 1000},
 )
 
 
