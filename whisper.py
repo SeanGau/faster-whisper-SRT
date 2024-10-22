@@ -4,17 +4,28 @@ import opencc
 import argparse
 
 # 解析命令列參數
-parser = argparse.ArgumentParser(description='Transcribe an audio file using Whisper and save as SRT.')
-parser.add_argument('filename', type=str, help='Path to the audio file')
+parser = argparse.ArgumentParser(
+    description="Transcribe an audio file using Whisper and save as SRT."
+)
+parser.add_argument("filename", type=str, help="Path to the audio file")
 args = parser.parse_args()
 
 # Load Whisper model
 model = WhisperModel("large-v3")
 filename = args.filename
-converter = opencc.OpenCC('s2tw')
+converter = opencc.OpenCC("s2tw")
 
 # Transcribe the audio file
-segments, info = model.transcribe(filename, language="zh")
+initial_prompt = "This is a Mandarin Chinese conversation about ChatGPT, Claude AI"
+segments, info = model.transcribe(
+    filename,
+    language="zh",
+    initial_prompt=initial_prompt,
+    word_timestamps=True,
+    vad_filter=True,
+    vad_parameters={"min_silence_duration_ms": 300},
+)
+
 
 # Function to format time in SRT format with more precise milliseconds
 def format_timestamp(seconds):
@@ -22,7 +33,8 @@ def format_timestamp(seconds):
     seconds = int(seconds)
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
-    return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
+
 
 # Save SRT
 srt_file_path = Path(filename + ".srt")
