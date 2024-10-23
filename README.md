@@ -12,7 +12,7 @@ This project uses the Faster Whisper model to transcribe audio files into Chines
 ## Requirements
 
 - Python 3.x
-- faster_whisper
+- [faster_whisper](https://github.com/SYSTRAN/faster-whisper)
 
 ## Installation
 
