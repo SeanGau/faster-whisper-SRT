@@ -30,5 +30,5 @@ This project uses the Faster Whisper model to transcribe audio files into Chines
 
 Run the script from the command line, providing the path to your audio file:
 ```
-python whisper.py your_audio_file.mp3
+python whisper.py "your_audio_file.mp3" --keywords "ChatGPT, Claude AI, Taiwan"
 ```
