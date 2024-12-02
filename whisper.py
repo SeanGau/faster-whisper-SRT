@@ -15,6 +15,9 @@ parser.add_argument(
 parser.add_argument(
     "--keywords", type=str, help="Initial prompt for the model", default=""
 )
+parser.add_argument(
+    "--offset", type=int, help="Offset for the timecode (ms)", default=500
+)
 args = parser.parse_args()
 print(args)
 
@@ -25,8 +28,9 @@ converter = opencc.OpenCC("s2tw")
 
 # Transcribe the audio file
 initial_prompt = (
-    f"This is a conversation about: 生成式 AI, ChatGPT, Claude AI, {args.keywords}"
+    f"This is a conversation about: 生成式 AI, ChatGPT, Claude AI, Prompt, {args.filename.split('/')[-1].split('.')[0]}, {args.keywords}"
 )
+
 segments, info = model.transcribe(
     filename,
     language=args.language,
@@ -39,6 +43,7 @@ segments, info = model.transcribe(
 
 # Function to format time in SRT format with more precise milliseconds
 def format_timestamp(seconds):
+    seconds += args.offset / 1000
     milliseconds = int(seconds * 1000) % 1000
     seconds = int(seconds)
     minutes, seconds = divmod(seconds, 60)
@@ -59,6 +64,8 @@ with open(srt_file_path, "w", encoding="utf-8") as srt_file:
             # split text by comma or 逗號 into multiple lines
             if "," in word.word or "，" in word.word or word == segment.words[-1]:
                 current_text = current_text.replace(",", "").replace("，", "").strip()
+                if "zh" in args.language:
+                    current_text = converter.convert(current_text)
                 line = f"{id}\n{start} --> {end}\n{current_text}"
                 print(line, flush=True)
                 srt_file.write(f"{line}\n\n")
