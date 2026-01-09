@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(
     description="Transcribe an audio file using Whisper and save as SRT."
 )
 parser.add_argument("filename", type=str, help="Path to the audio file")
-parser.add_argument("--model", type=str, help="Model to use", default="large-v3")
+parser.add_argument("--model", type=str, help="Model to use", default="medium")
 parser.add_argument(
     "--language", type=str, help="Language of the audio file", default="zh"
 )
@@ -17,7 +17,7 @@ parser.add_argument(
     "--keywords", type=str, help="Initial prompt for the model", default=""
 )
 parser.add_argument(
-    "--offset", type=int, help="Offset for the timecode (ms)", default=500
+    "--offset", type=int, help="Offset for the timecode (ms)", default=350
 )
 args = parser.parse_args()
 print(args)

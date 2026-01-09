@@ -9,11 +9,6 @@ This project uses the Faster Whisper model to transcribe audio files into Chines
 - Outputs subtitles in SRT format
 - Supports command-line arguments for easy use
 
-## Requirements
-
-- Python 3.x
-- [faster_whisper](https://github.com/SYSTRAN/faster-whisper)
-
 ## Installation
 
 1. Clone this repository:
@@ -23,12 +18,14 @@ This project uses the Faster Whisper model to transcribe audio files into Chines
    cd faster-whisper-SRT
    ```
 
-3. Install the required packages:   ```
-   pip install faster_whisper```
+3. Use uv to install dependencies:   ```
+   uv venv
+   uv sync 
+   ```
 
 ## Usage
 
 Run the script from the command line, providing the path to your audio file:
 ```
-python whisper.py "your_audio_file.mp3" --keywords "ChatGPT, Claude AI, Taiwan"
+python whisper.py "your_audio_file.mp3" --keywords "Taiwan"
 ```
