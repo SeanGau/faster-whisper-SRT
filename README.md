@@ -18,7 +18,8 @@ This project uses the Faster Whisper model to transcribe audio files into Chines
    cd faster-whisper-SRT
    ```
 
-3. Use uv to install dependencies:   ```
+3. Use uv to install dependencies:
+   ```
    uv venv
    uv sync 
    ```
@@ -29,3 +30,4 @@ Run the script from the command line, providing the path to your audio file:
 ```
 python whisper.py "your_audio_file.mp3" --keywords "Taiwan"
 ```
+
