@@ -1,2 +1,5 @@
 .env
 *.srt
+build/
+dist/
+__pycache__/

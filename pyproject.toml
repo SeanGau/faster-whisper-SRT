@@ -8,3 +8,8 @@ dependencies = [
     "faster-whisper>=1.2.1",
     "opencc>=1.1.9",
 ]
+
+[dependency-groups]
+build = [
+    "pyinstaller>=6.11",
+]
