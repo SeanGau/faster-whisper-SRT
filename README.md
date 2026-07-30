@@ -23,6 +23,28 @@ This project uses the Faster Whisper model to transcribe audio files into Chines
    uv sync 
    ```
 
+### GPU (CUDA) on a fresh Windows machine
+
+`WhisperModel` runs with `device="auto"`, so it picks CUDA whenever a GPU is
+present. The ctranslate2 wheel only ships `ctranslate2.dll` and `cudnn64_9.dll`
+— it still links against **`cublas64_12.dll`** (CUDA 12), which is not bundled.
+On a machine that has never had CUDA installed the first run dies with a missing
+`cublas64_12.dll`.
+
+It has to come from **CUDA 12** specifically. A `cu13x` PyTorch wheel does not
+help — it ships `cublas64_13.dll`, which does not satisfy the import. Either:
+
+- Install the CUDA 12.x Toolkit. Its installer puts `.../CUDA/v12.6/bin` on the
+  system `PATH`, so the DLL is found with no further setup. This is what makes
+  the current dev machine work.
+- Or `pip install nvidia-cublas-cu12`, then add
+  `<site-packages>/nvidia/cublas/bin` to `PATH`. Nothing here imports torch, so
+  torch's own `add_dll_directory` call never runs and the plain Windows search
+  path is all ctranslate2 gets.
+
+Torch itself is not needed and is deliberately absent from `pyproject.toml` —
+nothing imports it, and pinning a CUDA variant would break CPU-only boxes.
+
 ## Usage
 
 ### GUI
@@ -63,3 +85,8 @@ Python or FFmpeg needed on the target machine. Copy the whole folder, then run:
 Whisper models are not bundled. They are downloaded from Hugging Face into the
 user's cache on first use of each model size, so the first run needs a network
 connection.
+
+`cublas64_12.dll` is not bundled either — `_internal/` carries `cudnn64_9.dll`
+from the ctranslate2 wheel but not cuBLAS. A target machine with a GPU but no
+CUDA runtime hits the same missing-DLL error as a dev checkout; see
+[GPU (CUDA) on a fresh Windows machine](#gpu-cuda-on-a-fresh-windows-machine).

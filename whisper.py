@@ -2,8 +2,10 @@ from faster_whisper import WhisperModel
 from pathlib import Path
 import opencc
 import argparse
+import logging
 import os
 import sys
+import time
 
 MEDIA_EXTENSIONS = (
     ".mp3", ".wav", ".aac", ".m4a", ".flac", ".ogg",
@@ -31,6 +33,24 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
+def setup_logging():
+    """Send faster-whisper's own progress logs (audio duration, VAD, language
+    detection) to stdout so the GUI log pane shows what happens between the
+    subtitle lines."""
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("  [%(name)s] %(message)s"))
+    logger = logging.getLogger("faster_whisper")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+
+def format_duration(seconds):
+    seconds = int(seconds)
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
 # Function to format time in SRT format with more precise milliseconds
 def format_timestamp(seconds, offset_ms):
     seconds += offset_ms / 1000
@@ -41,10 +61,13 @@ def format_timestamp(seconds, offset_ms):
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
 
 
-def transcribe(model, converter, filename, args):
+def transcribe(model, converter, filename, args, index=1, total=1):
     # Transcribe the audio file
     title = os.path.splitext(os.path.basename(filename))[0]
     initial_prompt = f"This is a conversation about: {title}, {args.keywords}"
+
+    started = time.monotonic()
+    print(f"\n[{index}/{total}] Transcribing {filename}", flush=True)
 
     segments, info = model.transcribe(
         filename,
@@ -53,6 +76,12 @@ def transcribe(model, converter, filename, args):
         word_timestamps=True,
         vad_filter=True,
         vad_parameters={"min_silence_duration_ms": 500},
+    )
+
+    print(
+        f"  audio {format_duration(info.duration)}, "
+        f"language {info.language} ({info.language_probability:.2f})",
+        flush=True,
     )
 
     # Save SRT
@@ -77,7 +106,19 @@ def transcribe(model, converter, filename, args):
                     current_text = ""
                     id += 1
 
-    print(f"SRT file saved to {srt_file_path}")
+            percent = min(100, segment.end / info.duration * 100) if info.duration else 100
+            print(
+                f"  -- {percent:5.1f}%  {format_duration(segment.end)}"
+                f" / {format_duration(info.duration)}"
+                f"  {id - 1} lines  {time.monotonic() - started:.0f}s",
+                flush=True,
+            )
+
+    print(
+        f"SRT file saved to {srt_file_path} "
+        f"({id - 1} lines, {time.monotonic() - started:.1f}s)",
+        flush=True,
+    )
 
 
 # Releasing a WhisperModel tears down ctranslate2, which crashes on Windows
@@ -96,25 +137,38 @@ def main(argv=None):
         sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
 
     args = parse_args(argv)
-    print(args)
+    setup_logging()
+    print(args, flush=True)
 
-    # Load Whisper model
-    model = _model = WhisperModel(args.model)
-    converter = opencc.OpenCC("s2tw")
-
+    # Expand directories up front so the progress counter knows the real total.
+    files = []
     for target in args.filename:
         if os.path.isdir(target):
-            # run through all files in the directory
-            files = sorted(
-                f for f in os.listdir(target) if f.lower().endswith(MEDIA_EXTENSIONS)
+            found = sorted(
+                os.path.join(target, f)
+                for f in os.listdir(target)
+                if f.lower().endswith(MEDIA_EXTENSIONS)
             )
-            print(f"Transcribing all files in {target}")
-            print(f"Total files: {len(files)}")
-            for file in files:
-                transcribe(model, converter, os.path.join(target, file), args)
+            print(f"Found {len(found)} media file(s) in {target}", flush=True)
+            files.extend(found)
         else:
-            transcribe(model, converter, target, args)
+            files.append(target)
 
+    if not files:
+        print("No media files to transcribe.", flush=True)
+        return 1
+
+    # Load Whisper model (downloads it on first use, which can take a while)
+    print(f"Loading model {args.model}…", flush=True)
+    started = time.monotonic()
+    model = _model = WhisperModel(args.model)
+    converter = opencc.OpenCC("s2tw")
+    print(f"Model ready in {time.monotonic() - started:.1f}s", flush=True)
+
+    for index, file in enumerate(files, start=1):
+        transcribe(model, converter, file, args, index=index, total=len(files))
+
+    print(f"\nAll done: {len(files)} file(s).", flush=True)
     return 0
 
 
