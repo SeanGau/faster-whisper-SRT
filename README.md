@@ -75,7 +75,7 @@ uv sync --group build
 uv run pyinstaller FasterWhisperSRT.spec --noconfirm --clean
 ```
 
-The result is `dist/FasterWhisperSRT/` (~274 MB), a self-contained folder — no
+The result is `dist/FasterWhisperSRT/` (~860 MB), a self-contained folder — no
 Python or FFmpeg needed on the target machine. Copy the whole folder, then run:
 
 - `FasterWhisperSRT.exe` — the GUI
@@ -86,7 +86,8 @@ Whisper models are not bundled. They are downloaded from Hugging Face into the
 user's cache on first use of each model size, so the first run needs a network
 connection.
 
-`cublas64_12.dll` is not bundled either — `_internal/` carries `cudnn64_9.dll`
-from the ctranslate2 wheel but not cuBLAS. A target machine with a GPU but no
-CUDA runtime hits the same missing-DLL error as a dev checkout; see
-[GPU (CUDA) on a fresh Windows machine](#gpu-cuda-on-a-fresh-windows-machine).
+The build needs the CUDA 12.x Toolkit on the build machine: the spec copies
+`cublas64_12.dll` and `cublasLt64_12.dll` (~600 MB) from `%CUDA_PATH%\bin` into
+`_internal/`, so a target machine with an NVIDIA GPU needs only a recent driver,
+not a CUDA install. Without a GPU, or if the GPU still fails to load cuBLAS,
+`fw-worker` falls back to CPU (int8) and keeps going.

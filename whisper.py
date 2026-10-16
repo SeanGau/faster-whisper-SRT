@@ -126,6 +126,14 @@ def transcribe(model, converter, filename, args, index=1, total=1):
 # timestamps. Holding the model here keeps it alive past main() so the process
 # can leave through os._exit below instead.
 _model = None
+_dead_models = []
+
+
+def is_missing_cuda_library(error):
+    # ctranslate2 only loads cublas64_12.dll / cudnn on the first GPU call, so a
+    # box with a GPU but no CUDA 12 runtime fails mid-transcribe, not at load.
+    message = str(error).lower()
+    return "cublas" in message or "cudnn" in message or "cuda" in message
 
 
 def main(argv=None):
@@ -166,7 +174,21 @@ def main(argv=None):
     print(f"Model ready in {time.monotonic() - started:.1f}s", flush=True)
 
     for index, file in enumerate(files, start=1):
-        transcribe(model, converter, file, args, index=index, total=len(files))
+        try:
+            transcribe(model, converter, file, args, index=index, total=len(files))
+        except RuntimeError as error:
+            if model.model.device != "cuda" or not is_missing_cuda_library(error):
+                raise
+            print(
+                f"\nGPU unavailable ({error}).\n"
+                "Falling back to CPU — install the CUDA 12 runtime to use the GPU "
+                "(see README).",
+                flush=True,
+            )
+            # Keep the broken GPU model referenced; releasing it may crash (see _model).
+            _dead_models.append(model)
+            model = _model = WhisperModel(args.model, device="cpu", compute_type="int8")
+            transcribe(model, converter, file, args, index=index, total=len(files))
 
     print(f"\nAll done: {len(files)} file(s).", flush=True)
     return 0

@@ -8,6 +8,8 @@ The GUI stays a separate, tiny executable so it starts instantly and so the
 transcription still runs in a killable child process (the 停止 button).
 """
 
+import os
+
 from PyInstaller.utils.hooks import collect_all
 
 datas = []
@@ -25,6 +27,16 @@ for package in ("faster_whisper", "opencc", "ctranslate2", "onnxruntime", "av"):
     datas += pkg_datas
     binaries += pkg_binaries
     hiddenimports += pkg_hiddenimports
+
+# ctranslate2 links against cuBLAS from CUDA 12 but does not ship it. Bundle it
+# from the local CUDA 12.x Toolkit so the GPU works on machines without one.
+# Without a GPU the DLLs are simply never loaded and whisper.py runs on CPU.
+cuda_bin = os.path.join(os.environ.get("CUDA_PATH", ""), "bin")
+for dll in ("cublas64_12.dll", "cublasLt64_12.dll"):
+    path = os.path.join(cuda_bin, dll)
+    if not os.path.isfile(path):
+        raise SystemExit(f"{dll} not found in {cuda_bin}; install the CUDA 12.x Toolkit")
+    binaries.append((path, "."))
 
 # opencc imports its extension through a try/except fallback.
 hiddenimports += ["opencc.clib", "opencc.clib.opencc_clib"]
