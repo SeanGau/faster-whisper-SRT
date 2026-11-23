@@ -12,6 +12,36 @@ MEDIA_EXTENSIONS = (
     ".mp4", ".mkv", ".mov", ".webm", ".avi", ".flv",
 )
 
+APP_DIR = (
+    os.path.dirname(os.path.abspath(sys.executable))
+    if getattr(sys, "frozen", False)
+    else os.path.dirname(os.path.abspath(__file__))
+)
+
+# Fine-tuned Whisper models that faster-whisper cannot load straight from their
+# official Hugging Face repo (those ship Transformers weights, not CTranslate2).
+# Each alias prefers a local conversion under models/ (see convert_model.py)
+# and otherwise falls back to a community CTranslate2 conversion on the Hub.
+MODEL_ALIASES = {
+    # MediaTek Research Breeze-ASR-26: Whisper fine-tuned on Taiwanese Hokkien
+    # (台語). Official weights: MediaTek-Research/Breeze-ASR-26.
+    "breeze-asr-26": {
+        "local": os.path.join(APP_DIR, "models", "Breeze-ASR-26-ct2"),
+        "hub": "WizardForest/faster-whisper-Breeze-ASR-26-int8",
+    },
+}
+
+
+def resolve_model(name):
+    """Map a model alias to something WhisperModel accepts: a size name, a
+    CTranslate2 repo id on the Hub, or a local converted model directory."""
+    alias = MODEL_ALIASES.get(name.lower())
+    if alias is None:
+        return name
+    if os.path.isfile(os.path.join(alias["local"], "model.bin")):
+        return alias["local"]
+    return alias["hub"]
+
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(
@@ -20,7 +50,14 @@ def parse_args(argv=None):
     parser.add_argument(
         "filename", type=str, nargs="+", help="Path to the audio file(s) or directory"
     )
-    parser.add_argument("--model", type=str, help="Model to use", default="medium")
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="medium",
+        help="Whisper size (tiny … large-v3), an alias ("
+        + ", ".join(MODEL_ALIASES)
+        + "), a CTranslate2 repo id on Hugging Face, or a local model directory",
+    )
     parser.add_argument(
         "--language", type=str, help="Language of the audio file", default="zh"
     )
@@ -167,9 +204,12 @@ def main(argv=None):
         return 1
 
     # Load Whisper model (downloads it on first use, which can take a while)
-    print(f"Loading model {args.model}…", flush=True)
+    model_path = resolve_model(args.model)
+    if model_path != args.model:
+        print(f"Model {args.model} -> {model_path}", flush=True)
+    print(f"Loading model {model_path}…", flush=True)
     started = time.monotonic()
-    model = _model = WhisperModel(args.model)
+    model = _model = WhisperModel(model_path)
     converter = opencc.OpenCC("s2tw")
     print(f"Model ready in {time.monotonic() - started:.1f}s", flush=True)
 
@@ -187,7 +227,7 @@ def main(argv=None):
             )
             # Keep the broken GPU model referenced; releasing it may crash (see _model).
             _dead_models.append(model)
-            model = _model = WhisperModel(args.model, device="cpu", compute_type="int8")
+            model = _model = WhisperModel(model_path, device="cpu", compute_type="int8")
             transcribe(model, converter, file, args, index=index, total=len(files))
 
     print(f"\nAll done: {len(files)} file(s).", flush=True)
