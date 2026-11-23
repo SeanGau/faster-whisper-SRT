@@ -67,6 +67,42 @@ Multiple files and directories can be mixed in one run (the model is only loaded
 python whisper.py "clip.mp4" "podcasts/" --model medium --offset 350
 ```
 
+### Breeze-ASR-26 (台語)
+
+[Breeze-ASR-26](https://huggingface.co/MediaTek-Research/Breeze-ASR-26) is
+MediaTek Research's Whisper fine-tune for Taiwanese Hokkien. Pick
+`breeze-asr-26` in the GUI's model box, or:
+```
+python whisper.py "clip.mp4" --model breeze-asr-26
+```
+Keep the language at `zh`: Whisper has no Taigi language token, and the model
+writes Mandarin Chinese characters, not 台語正字, which then go through the
+same 繁體 conversion as the other models.
+
+The official repo holds Transformers weights, which faster-whisper cannot load,
+so the alias resolves in this order:
+
+1. `models/Breeze-ASR-26-ct2/` next to `whisper.py` (or next to `fw-worker.exe`
+   when built), if it contains a `model.bin`
+2. otherwise the community CTranslate2 conversion
+   [`phate334/Breeze-ASR-26-int8_float16-CT2`](https://huggingface.co/phate334/Breeze-ASR-26-int8_float16-CT2)
+   (~1.5 GB), downloaded on first use like the stock models. Of that
+   publisher's conversions it stayed closest to the original model's output;
+   [`float16`](https://huggingface.co/phate334/Breeze-ASR-26-float16-CT2)
+   (~3 GB) can be typed into the model box instead.
+
+To use the official weights instead of a third-party conversion, convert them
+once yourself (float16 by default; torch + transformers are pulled in only for
+this command and do not touch the project's environment):
+```
+uv run --with "transformers[torch]" python convert_model.py
+```
+For the packaged exe, copy the resulting `models/` folder next to
+`fw-worker.exe`.
+
+The model box is editable, so any other faster-whisper (CTranslate2) model can
+be used too, either as a Hugging Face repo id or as a local folder path.
+
 ## Building a Windows executable
 
 Build on Windows 11 (PyInstaller does not cross-compile):

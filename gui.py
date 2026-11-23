@@ -28,7 +28,10 @@ FILE_TYPES = [
     ),
     ("所有檔案", "*.*"),
 ]
-MODELS = ["tiny", "base", "small", "medium", "large-v2", "large-v3"]
+# breeze-asr-26 is MediaTek's Taiwanese Hokkien (台語) fine-tune; whisper.py
+# resolves the alias. The box is editable, so a Hugging Face CTranslate2 repo
+# id or a local model folder can be typed in too.
+MODELS = ["tiny", "base", "small", "medium", "large-v2", "large-v3", "breeze-asr-26"]
 
 
 class App(tk.Tk):
@@ -83,7 +86,7 @@ class App(tk.Tk):
 
         ttk.Label(opts, text="模型").grid(row=0, column=0, sticky="w", padx=6, pady=4)
         ttk.Combobox(
-            opts, textvariable=self.model_var, values=MODELS, width=12, state="readonly"
+            opts, textvariable=self.model_var, values=MODELS, width=16
         ).grid(row=0, column=1, sticky="w", pady=4)
 
         ttk.Label(opts, text="語言").grid(row=0, column=2, sticky="w", padx=6, pady=4)
@@ -184,7 +187,7 @@ class App(tk.Tk):
             *([WORKER] if FROZEN else [sys.executable, "-u", WORKER]),
             *self.targets,
             "--model",
-            self.model_var.get(),
+            self.model_var.get().strip() or "medium",
             "--language",
             self.language_var.get().strip() or "zh",
             "--keywords",
