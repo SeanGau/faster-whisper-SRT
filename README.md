@@ -76,8 +76,8 @@ MediaTek Research's Whisper fine-tune for Taiwanese Hokkien. Pick
 python whisper.py "clip.mp4" --model breeze-asr-26
 ```
 Keep the language at `zh`: Whisper has no Taigi language token, and the model
-writes its output in Chinese characters (mostly Mandarin wording), which then
-goes through the same 繁體 conversion as the other models.
+writes Mandarin Chinese characters, not 台語正字, which then go through the
+same 繁體 conversion as the other models.
 
 The official repo holds Transformers weights, which faster-whisper cannot load,
 so the alias resolves in this order:
@@ -85,8 +85,11 @@ so the alias resolves in this order:
 1. `models/Breeze-ASR-26-ct2/` next to `whisper.py` (or next to `fw-worker.exe`
    when built), if it contains a `model.bin`
 2. otherwise the community CTranslate2 conversion
-   [`WizardForest/faster-whisper-Breeze-ASR-26-int8`](https://huggingface.co/WizardForest/faster-whisper-Breeze-ASR-26-int8),
-   downloaded on first use like the stock models
+   [`phate334/Breeze-ASR-26-int8_float16-CT2`](https://huggingface.co/phate334/Breeze-ASR-26-int8_float16-CT2)
+   (~1.5 GB), downloaded on first use like the stock models. Of that
+   publisher's conversions it stayed closest to the original model's output;
+   [`float16`](https://huggingface.co/phate334/Breeze-ASR-26-float16-CT2)
+   (~3 GB) can be typed into the model box instead.
 
 To use the official weights instead of a third-party conversion, convert them
 once yourself (float16 by default; torch + transformers are pulled in only for

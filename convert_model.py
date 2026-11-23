@@ -70,15 +70,23 @@ def main(argv=None):
     from ctranslate2.converters import TransformersConverter
 
     copy_files = available_extra_files(args.model)
-    missing = sorted(set(EXTRA_FILES) - set(copy_files))
-    if missing:
-        print(f"Note: {args.model} has no {', '.join(missing)}; faster-whisper "
-              "falls back to its defaults for those.")
+    if "preprocessor_config.json" not in copy_files:
+        print(f"Note: {args.model} has no preprocessor_config.json; faster-whisper "
+              "assumes 80 mel bins (right for large-v2 based models).")
 
     print(f"Converting {args.model} -> {args.output} ({args.quantization})…")
     TransformersConverter(args.model, copy_files=copy_files).convert(
         args.output, quantization=args.quantization, force=args.force
     )
+    if "tokenizer.json" not in copy_files:
+        # Breeze-ASR-26 ships only the slow tokenizer files; without a
+        # tokenizer.json faster-whisper would fetch openai/whisper-tiny's.
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained(args.model)
+        tokenizer.backend_tokenizer.save(os.path.join(args.output, "tokenizer.json"))
+        print("Wrote tokenizer.json from the model's own vocabulary.")
+
     print(f"Done. Use it with --model \"{args.output}\" (for the default "
           "output folder, --model breeze-asr-26 picks it up automatically).")
     return 0

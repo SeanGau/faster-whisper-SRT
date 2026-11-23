@@ -23,11 +23,14 @@ APP_DIR = (
 # Each alias prefers a local conversion under models/ (see convert_model.py)
 # and otherwise falls back to a community CTranslate2 conversion on the Hub.
 MODEL_ALIASES = {
-    # MediaTek Research Breeze-ASR-26: Whisper fine-tuned on Taiwanese Hokkien
-    # (台語). Official weights: MediaTek-Research/Breeze-ASR-26.
+    # MediaTek Research Breeze-ASR-26: Whisper large-v2 fine-tuned on
+    # Taiwanese Hokkien (台語); writes Mandarin characters. Official weights:
+    # MediaTek-Research/Breeze-ASR-26. The int8_float16 conversion stayed
+    # closest to the original in its publisher's comparison (CER vs. HF float16:
+    # int8_float16 0.116, float16 0.118, int8 0.126) at ~1.5 GB.
     "breeze-asr-26": {
         "local": os.path.join(APP_DIR, "models", "Breeze-ASR-26-ct2"),
-        "hub": "WizardForest/faster-whisper-Breeze-ASR-26-int8",
+        "hub": "phate334/Breeze-ASR-26-int8_float16-CT2",
     },
 }
 
